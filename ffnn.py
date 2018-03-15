@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import logging
 import keras.utils
 import numpy as np
@@ -18,7 +17,8 @@ class NeuralNetwork():
 	self.one_hot_matrix = None # one hot encoded data for training
 
     """Create feed forward neural network models""" 
-    def build_FFNN(self):
+    def build_FFNN(self,model_name):
+        log.debug("Building feedforward neural network: %s" % (model_name))
         # 1. Rectified linear activation function model
         model1 = Sequential()
         # Configure first layer to have output arrays of shape (*,32) 
@@ -63,6 +63,7 @@ class NeuralNetwork():
         print(labels)
         one_hot_labels = keras.utils.to_categorical(labels,num_classes=2)
         #print(one_hot_labels)
+        logging.debug("Finished building feedforward neural network: %s" % (model_name))
 
     """Convert ATCG to 1234 to one hot encoding"""
     def one_hot(self,sequence_to_convert):
@@ -75,9 +76,10 @@ class NeuralNetwork():
 	
 	# One hot encode the numeric list
 	keras.utils.to_categorical(numeric_list,num_classes=2)
-	
+
     """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
+        logging.debug("Loading fasta file: %s" % (fasta_file))
         with open(fasta_file,'U') as input_file:
             tokens = input_file.readlines()
         tokens = map(str.strip,tokens) 
@@ -96,9 +98,11 @@ class NeuralNetwork():
                 cur_seq += line
         # Add last sequence of file
         self.read_dict.append((cur_header,cur_seq))
+        logging.debug("Finished loading fasta file: %s" % (fasta_file))
 
     """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default"""
     def remove_masked_reads(self,soft=True):
+        logging.debug("Removing masked reads...")
 	reads_to_remove = set() # indices of reads to remove from reads attribute
 	
 	# Check if removing both hard and soft or only hard
@@ -121,21 +125,26 @@ class NeuralNetwork():
 
 	# Store only non-masked reads in non_masked_reads attribute			
 	self.non_masked_reads = [cur_tuple for index,cur_tuple in enumerate(self.reads) if index not in reads_to_remove]
+        logging.debug("Finished removing masked reads.")
 
     """Post-processing: Use classification labels to remove sequences classified as human by deep learning."""
     def filter_reads(self,classification_labels):    
+        logging.debug("Removing reads classified as human DNA...")
         for cur_tuple,classification in zip(self.read_list,classification_labels):
             # Sequence labeled as non-human, keep in filtered list
             if classification == 0:
                 self.filtered_reads.append(cur_tuple)
-   
+        logging.debug("Finished removing reads classified as human DNA.")
+
     """Post-processing: Writes new fasta file based on filtered_list"""
     def write_fasta(self,output_file,filtered_list=self.filtered_reads):
+        logging.debug("Writing final filtered fasta file to: %s..." % (output_file))
         with open(output_file,'w') as output_file:
             for cur_tuple in filtered_list:
                 header = cur_tuple[0]
                 sequence = cur_tuple[1]
                 output_file.write("\n".join([header,sequence]))
+        logging.debug("Finished writing final filtered fasta file to: %s" % (output_file))
 
 def main():
     parser = ArgumentParser(description="Meta-Sweeper is a program to filter human DNA from metagenomic reads.")
@@ -143,12 +152,21 @@ def main():
                         required=True,type=str)
     parser.add_argument('-o','--output_fasta',help="Specify final output fasta file name with filtered reads",
                         required=True,type=str)
-    parser.add_argument('-d','--debug',help="Specify boolean to enable debug logging",
-                        required=False,default=False,type=bool)
+    parser.add_argument('-d','--debug',help="Enable debug logging if flag is specified.",
+                        required=False,action="store_true",dest="bool_switch_option",default=False)
     args = parser.parse_args()   
-    instance = NeuralNetwork()
-    instance.load_fasta(args.input_fasta)
-    #instance.build_FFNN()
+
+    # Configure log file destination if running in debug mode
+    if args.bool_switch_option == True:
+        logging.basicConfig(filename="Meta_Sweeper.log",
+                            filemode='w',
+                            format='%(asctime)s %(levelname)s %(message)s',
+                            level=logging.DEBUG)
+
+    # Build neural network models
+    NN = NeuralNetwork()
+    NN.load_fasta(args.input_fasta)
+    NN.build_FFNN()
 
 if __name__ == "__main__":
     main()
