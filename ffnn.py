@@ -2,9 +2,10 @@
 
 import logging
 import keras.utils
+import numpy as np
+from argparse import ArgumentParser
 from keras.models import Sequential
 from keras.layers import Dense, Activation
-import numpy as np
 #from string import maketrans
 
 class NeuralNetwork():
@@ -91,8 +92,6 @@ class NeuralNetwork():
     """Use classification labels to remove sequences classified as human by deep learning."""
     def filter_reads(self,classification_labels):    
         for cur_tuple,classification in zip(self.read_list,classification_labels):
-            print(cur_tuple)
-            print(classification)
             # Sequence labeled as non-human, keep in filtered list
             if classification == 0:
                 self.filtered_reads.append(cur_tuple)
@@ -107,12 +106,15 @@ class NeuralNetwork():
 
 def main():
     parser = ArgumentParser(description="Meta-Sweeper is a program to filter human DNA from metagenomic reads.")
-    parser.add_argument(-i,--input_fasta,help="Input fasta file to be filtered",required=True)
-    parser.add_argument(-o,--output_fasta,help="Output fasta file with filtered reads",required=True)
-    parser.add_argument(-d,--debug,help="Enable debug logging",required=False,default=False)
-    parser.parse_args()   
+    parser.add_argument('-i','--input_fasta',help="Specify input fasta file name to be filtered",
+                        required=True,type=str)
+    parser.add_argument('-o','--output_fasta',help="Specify final output fasta file name with filtered reads",
+                        required=True,type=str)
+    parser.add_argument('-d','--debug',help="Specify boolean to enable debug logging",
+                        required=False,default=False,type=bool)
+    args = parser.parse_args()   
     instance = NeuralNetwork()
-    instance.load_fasta(input_fasta)
+    instance.load_fasta(args.input_fasta)
     #instance.build_FFNN()
 
 if __name__ == "__main__":
