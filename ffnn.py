@@ -12,8 +12,10 @@ class NeuralNetwork():
     """Constructor"""
     def __init__(self):
         self.reads = [] # [(header,sequence)]
-        self.seqs_to_remove = [] # headers of the sequences which will be removed
+	self.non_masked_reads = [] # [(header,sequence)] after removing hard and(or) soft masked reads
+        self.seqs_to_remove = [] # headers of the sequences which will be removed at the end from the metagenome
         self.filtered_reads = [] # filtered lists containing (header,sequence), of remaining reads
+	self.one_hot_matrix = None # one hot encoded data for training
 
     """Create feed forward neural network models""" 
     def build_FFNN(self):
@@ -63,12 +65,18 @@ class NeuralNetwork():
         #print(one_hot_labels)
 
     """Convert ATCG to 1234 to one hot encoding"""
-    def one_hot(self,string_to_convert):
-        # Access Python 3's static str maketrans function
-        numeric_string = string_to_convert.translate(str.maketrans("ACTG","1234"))
-        new_list = list(map(int,[digit for digit in numeric_string]))
+    def one_hot(self,sequence_to_convert):
+	# Make sure that all nucleotides are upper case (may not be if user wished to keep soft masked reads)
+	upper_sequence_to_convert = sequence_to_convert.upper()
 
-    """Load fasta file into read_dict property"""
+        # Access Python 3's static str maketrans function to create translation from "ACTG" to "1234" numeric sequence
+        numeric_string = upper_sequence_to_convert.translate(str.maketrans("ACTG","1234"))
+        numeric_list = list(map(int,[digit for digit in numeric_string]))
+	
+	# One hot encode the numeric list
+	keras.utils.to_categorical(numeric_list,num_classes=2)
+	
+    """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
         with open(fasta_file,'U') as input_file:
             tokens = input_file.readlines()
@@ -89,14 +97,39 @@ class NeuralNetwork():
         # Add last sequence of file
         self.read_dict.append((cur_header,cur_seq))
 
-    """Use classification labels to remove sequences classified as human by deep learning."""
+    """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default"""
+    def remove_masked_reads(self,soft=True):
+	reads_to_remove = set() # indices of reads to remove from reads attribute
+	
+	# Check if removing both hard and soft or only hard
+	if soft == True:
+		for index,cur_tuple in enumerate(self.reads):
+			header = cur_tuple[0]
+			seq = cur_tuple[1]
+
+			# Remove read if it contains any hard masked (N's), soft masking (lowercase), or length < 100
+			if("N" in seq or any(nucleotide for nucleotide in seq if nucleotide.islower()) or len(seq) < 100):
+				reads_to_remove.append(index)
+
+	# Only remove hard masked reads
+	else:
+		for index,cur_tuple in enumerate(self.reads):
+			header = cur_tuple[0]
+			sequence = cur_tuple[1]
+			if("N" in seq or len(seq) < 100):
+				reads_to_remove.append(index)
+
+	# Store only non-masked reads in non_masked_reads attribute			
+	self.non_masked_reads = [cur_tuple for index,cur_tuple in enumerate(self.reads) if index not in reads_to_remove]
+
+    """Post-processing: Use classification labels to remove sequences classified as human by deep learning."""
     def filter_reads(self,classification_labels):    
         for cur_tuple,classification in zip(self.read_list,classification_labels):
             # Sequence labeled as non-human, keep in filtered list
             if classification == 0:
                 self.filtered_reads.append(cur_tuple)
    
-    """Writes new fasta file based on filtered_list"""
+    """Post-processing: Writes new fasta file based on filtered_list"""
     def write_fasta(self,output_file,filtered_list=self.filtered_reads):
         with open(output_file,'w') as output_file:
             for cur_tuple in filtered_list:
