@@ -15,6 +15,8 @@ class NeuralNetwork():
         self.seqs_to_remove = [] # headers of the sequences which will be removed at the end from the metagenome
         self.filtered_reads = [] # filtered lists containing (header,sequence), of remaining reads
 	self.one_hot_matrix = None # one hot encoded data for training
+        self.positive = [] # data for positive training classifications
+        self.negative = [] # data for negative training classifications
 
     """Create feed forward neural network models""" 
     def build_FFNN(self,model_name):
@@ -25,7 +27,7 @@ class NeuralNetwork():
         # Configure first layer to take input arrays of shape (*,16),
         # Note: no need to specify dimension of input in additional layers  
         model1.add(Dense(32,input_dim=784))
-        # Rectified linear activation function
+        # Rectified linear unit activation function
         model1.add(Activation('relu'))
         # Compile model to configure learning process
         model1.compile(optimizer='rmsprop',
@@ -38,7 +40,7 @@ class NeuralNetwork():
         model2.add(Activation('sigmoid'))
         model2.compile()
 
-        # 3. Tanh activation function model
+        # 3. Hyperbolic tangent (Tanh) activation function model
         model3 = Sequential()
         model3.add(Dense(32,input_dim=784,activation='tanh'))
         model3.compile()
@@ -48,7 +50,7 @@ class NeuralNetwork():
         model4.add(Dense(,activation='linear'))
         model4.compile()
 
-        # 5. Scaled Exponential Linear Unit model(Klambauer et al., 2017)
+        # 5. Scaled exponential linear unit model(Klambauer et al., 2017)
         model5 = Sequential()
         model5.add(Dense(,activation='selu'))
         model5.compile()
@@ -65,7 +67,10 @@ class NeuralNetwork():
         #print(one_hot_labels)
         logging.debug("Finished building feedforward neural network: %s" % (model_name))
 
-    """Convert ATCG to 1234 to one hot encoding"""
+    """Load positive and negative datasets into numpy arrays attributes"""
+    def load_training_data(self,positive_dataset,negative_dataset):
+         
+    """Convert ATCG from positive/negatives datasets to 1234 to one hot encoding"""
     def one_hot(self,sequence_to_convert):
 	# Make sure that all nucleotides are upper case (may not be if user wished to keep soft masked reads)
 	upper_sequence_to_convert = sequence_to_convert.upper()
@@ -166,7 +171,31 @@ def main():
     # Build neural network models
     NN = NeuralNetwork()
     NN.load_fasta(args.input_fasta)
-    NN.build_FFNN()
+    
+    # Feedforward neural networks - activation models
+    # Rectified linear unit 
+    relu = NN.build_FFNN()
+    # Hyperbolic tangent (tanh) 
+    tanh = NN.build_FFNN()
+    # Sigmoid (logistic)
+    sigmoid = NN.build_FFNN()
+    # Linear 
+    linear = NN.build_FFNN()
+    # Scaled exponential linear unit 
+    selu = NN.build_FFNN()
+
+    # Recurrent neural networks - activation models
+    # Rectified linear unit 
+    relu = NN.build_RNN()
+    # Hyperbolic tangent (tanh) 
+    tanh = NN.build_RNN()
+    # Sigmoid (logistic)
+    sigmoid = NN.build_RNN()
+    # Linear 
+    linear = NN.build_RNN()
+    # Scaled exponential linear unit 
+    selu = NN.build_RNN()
+
 
 if __name__ == "__main__":
     main()
