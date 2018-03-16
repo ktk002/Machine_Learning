@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import logging
 import keras.utils
 import numpy as np
@@ -19,7 +20,7 @@ class NeuralNetwork():
         self.negative = [] # data for negative training classifications
 
     """Create feed forward neural network models""" 
-    def build_FFNN(self,model_name):
+    def build_FFNN(self,model_name,**kwargs):
         log.debug("Building feedforward neural network: %s" % (model_name))
         # 1. Rectified linear activation function model
         model1 = Sequential()
@@ -69,7 +70,9 @@ class NeuralNetwork():
 
     """Load positive and negative datasets into numpy arrays attributes"""
     def load_training_data(self,positive_dataset,negative_dataset):
-         
+        with open(positive_dataset,"U") as input_positive, open(negative_dataset,"U") as input_negative:
+            pass
+
     """Convert ATCG from positive/negatives datasets to 1234 to one hot encoding"""
     def one_hot(self,sequence_to_convert):
 	# Make sure that all nucleotides are upper case (may not be if user wished to keep soft masked reads)
@@ -85,6 +88,8 @@ class NeuralNetwork():
     """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
         logging.debug("Loading fasta file: %s" % (fasta_file))
+        # Reset reads being held in case using function to process many fasta files
+        self.reads = []
         with open(fasta_file,'U') as input_file:
             tokens = input_file.readlines()
         tokens = map(str.strip,tokens) 
@@ -96,14 +101,38 @@ class NeuralNetwork():
                 cur_header = line
                 index += 1
             elif ">" in line:
-                self.read_dict.append((cur_header,cur_seq))
+                self.reads.append((cur_header,cur_seq))
                 cur_header = line
                 cur_seq = ""
             else:
                 cur_seq += line
         # Add last sequence of file
-        self.read_dict.append((cur_header,cur_seq))
+        self.reads.append((cur_header,cur_seq))
         logging.debug("Finished loading fasta file: %s" % (fasta_file))
+
+    """Pre-processing: Cut all sequences in each fasta file in in_dir into kmers of length 100 (or specified length) and write to a new file"""
+    def write_kmers(self,in_dir,output_file="merged_1.fasta",kmer_size=100):
+        # Check for existing file
+        if os.path.exists(output_file):
+            # Grab current file number and increment
+            new_file_num = int(output_file.split(".")[0].split("_")[1]) + 1
+            output_file = "".join(["merged_",str(new_file_num),".fasta"]) 
+
+        logging.debug("Writing kmers to output file: %s" % (output_file))
+        with open(output_file,"w") as output_file:
+            # Process all fasta sequences in specified directory
+            for filename in os.listdir(in_dir):
+                if filename.endswith(".fasta") or filename.endswith(".fa"):
+                    abs_path = os.path.join(in_dir,filename)
+                    self.load_fasta(abs_path)
+                    for cur_tuple in self.reads:
+                        header = cur_tuple[0]
+                        seq = cur_tuple[1]
+                        # Loop over sequences to extract kmers with step size of kmer length
+                        for index in range(0,len(seq)-kmer_size,kmer_size):
+                            kmer = seq[index:index+kmer_size]
+                            output_file.write("\t".join([header,kmer])+"\n") 
+        logging.debug("Finished merging fasta files to: %s" % (output_file))
 
     """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default"""
     def remove_masked_reads(self,soft=True):
@@ -174,28 +203,27 @@ def main():
     
     # Feedforward neural networks - activation models
     # Rectified linear unit 
-    relu = NN.build_FFNN()
+    relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Hyperbolic tangent (tanh) 
-    tanh = NN.build_FFNN()
+    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
-    sigmoid = NN.build_FFNN()
+    sigmoid = NN.build_FFNN("sigmoid",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Linear 
-    linear = NN.build_FFNN()
+    linear = NN.build_FFNN("linear",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Scaled exponential linear unit 
-    selu = NN.build_FFNN()
+    selu = NN.build_FFNN("selu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
 
     # Recurrent neural networks - activation models
     # Rectified linear unit 
-    relu = NN.build_RNN()
+    relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Hyperbolic tangent (tanh) 
-    tanh = NN.build_RNN()
+    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
-    sigmoid = NN.build_RNN()
+    sigmoid = NN.build_FFNN("sigmoid",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Linear 
-    linear = NN.build_RNN()
+    linear = NN.build_FFNN("linear",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Scaled exponential linear unit 
-    selu = NN.build_RNN()
-
+    selu = NN.build_FFNN("selu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
 
 if __name__ == "__main__":
     main()
