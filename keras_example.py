@@ -5,7 +5,7 @@ from keras.layers import Dense,Activation,Dropout
 
 np.random.seed(1)
 
-x_train = np.random.random((1000,20)) # number patients = 1000, number of features = 20
+x_train = np.random.random((1000,20)) # number patients = 1000, number of features = 20 --> 1000 row vectors with 20 elements
 y_train = np.random.randint(2,size=(1000,1))
 x_test = np.random.random((100,20))
 y_test = np.random.randint(2,size=(100,1))
@@ -19,8 +19,9 @@ model.add(Dropout(0.5))
 model.add(Dense(units=1,activation='sigmoid')) # 1 output node for binary classification
 model.compile(optimizer='rmsprop',loss='binary_crossentropy',metrics=['accuracy'])
 
-model.fit(x_train,y_train,epochs=20,batch_size=128,verbose=1,shuffle=True,validation_data=(x_test,y_test)) # shuffles data, print verbose info, and gives validation set
+model.fit(x_train,y_train,epochs=20,batch_size=128,verbose=1,validation_data=(x_test,y_test)) # shuffles data, print verbose info, and gives validation set
 score = model.evaluate(x_test,y_test,batch_size=128)
 
+print(x_train)
 print("Test score: " + str(score[0]))
 print("Test accuracy: " + str(score[1]))
