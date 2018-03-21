@@ -2,11 +2,11 @@
 import os
 import random
 import logging
-import numpy as np
 import keras.utils
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from argparse import ArgumentParser
+import numpy as np
 
 # Initialize seed for data reproducibility
 random.seed(1) 
@@ -31,11 +31,11 @@ class NeuralNetwork():
         # Assumptions: 
         # 1) total number of samples in negative and positive set must be equal
         # 2) 80% of the negative and positive sets will be used for training, 20% for testing/validation
-        log.debug("Building feedforward neural network: %s" % (model_name))
+        logging.debug("Building feedforward neural network: %s" % (model_name))
         num_train_seqs = int((total_samples/2) * 0.80) # Default: 80,000
         num_test_seqs = int(total_samples/2) - num_train_seqs # Default: 20,000
-        all_indices = list(range(total_samples/2)) # Add indices to access negative/positive samples
-        train_indices = random.sample(xrange(total_samples/2),num_train_seqs)
+        all_indices = list(range(int(total_samples/2))) # Add indices to access negative/positive samples
+        train_indices = random.sample(range(int(total_samples/2)),num_train_seqs)
         test_indices = [index for index in all_indices if index not in train_indices]
         # Prepare training and testing one hot encoded data 
         X_train = np.array([]) 
@@ -49,7 +49,7 @@ class NeuralNetwork():
                 self.one_hot_matrix = encoded_sequence
             # Keep stacking and append to the bottom of the numpy array matrix
             else:
-                self.one_hot_matrix = np.vstack(self.one_hot_matrix,encoded_sequence)
+                self.one_hot_matrix = np.vstack((self.one_hot_matrix,encoded_sequence))
 
         for index,sequence in enumerate(self.negative):
             encoded_sequence = self.one_hot(sequence)
@@ -116,7 +116,8 @@ class NeuralNetwork():
                 self.negative.append((header,sequence))
 
     """Convert ATCG from positive/negatives datasets to 0123 to one hot encoding"""
-    def one_hot(self,sequence_to_convert):
+    def one_hot(self,tuple_to_convert):
+        sequence_to_convert = tuple_to_convert[1] # index 0 = header, index 1 = sequence
         # Make sure that all nucleotides are upper case (may not be if user wished to keep soft masked reads)
         upper_sequence_to_convert = sequence_to_convert.upper()
 
@@ -125,7 +126,7 @@ class NeuralNetwork():
         numeric_list = list(map(int,[digit for digit in numeric_string])) # List of 0,1,2,3 
 
         # Returns a one hot encoded the numpy numeric list with 4 class labels for A,C,G,T
-        return np_utils.to_categorical(numeric_list,num_classes=4)
+        return keras.utils.np_utils.to_categorical(numeric_list,num_classes=4)
 
     """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
@@ -271,7 +272,7 @@ def main():
  
     # Feedforward neural networks - activation models
     # Rectified linear unit 
-#    relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
+    relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Hyperbolic tangent (tanh) 
 #    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
