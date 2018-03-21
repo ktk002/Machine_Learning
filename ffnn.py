@@ -52,7 +52,7 @@ class NeuralNetwork():
                 self.one_hot_matrix = np.vstack((self.one_hot_matrix,encoded_sequence))
 
         for index,sequence in enumerate(self.negative):
-            encoded_sequence = self.one_hot(sequence)
+            encoded_sequence = self.new_one_hot(sequence)
             # Just vertically stack, no need to initialize matrix since positive matrix already initialized it
             self.one_hot_matrix = np.vstack(self.one_hot_matrix,encoded_sequence)
         
@@ -127,6 +127,18 @@ class NeuralNetwork():
 
         # Returns a one hot encoded the numpy numeric list with 4 class labels for A,C,G,T
         return keras.utils.np_utils.to_categorical(numeric_list,num_classes=4)
+
+    def new_one_hote(self,tuple_to_convert):
+        CHARS = 'ACGT'
+        CHARS_COUNT = len(CHARS)
+        sequence_to_convert = tuple_to_convert[1]
+        upper_sequence_to_convert = sequence_to_convert.upper()
+        max_len = len(sequence_to_convert)
+        res = np.zeros((1, CHARS_COUNT * max_len),dtype=np.uint8) 
+        seqlen = len(sequence_to_convert) 
+        arr = np.chararray((seqlen,), buffer=seq)
+        for index,char in enumerate(CHARS):
+            res[index*seqlen:(ii+1)*seqlen][arr == char] = 1
 
     """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
