@@ -24,7 +24,9 @@ class NeuralNetwork():
 
     """Create feed forward neural network models""" 
     # Number of samples: sample total for negative dataset
-    def build_FFNN(self,model_name,total_samples=200000,**kwargs):
+    def build_FFNN(self,model_name,total_samples=200000,read_length=100,**kwargs):
+        NUCLEOTIDES = "ACGT"
+        NUCLEOTIDES_LENGTH = len(NUCLEOTIDES)
         # Make sure total number of samples is even
         if total_samples % 2 != 0:
             total_samples -= 1
@@ -32,39 +34,52 @@ class NeuralNetwork():
         # 1) total number of samples in negative and positive set must be equal
         # 2) 80% of the negative and positive sets will be used for training, 20% for testing/validation
         logging.debug("Building feedforward neural network: %s" % (model_name))
-        num_train_seqs = int((total_samples/2) * 0.80) # Default: 80,000
+        num_train_seqs = int((int(total_samples/2) * 0.80)) # Default: 80,000 
         num_test_seqs = int(total_samples/2) - num_train_seqs # Default: 20,000
         all_indices = list(range(int(total_samples/2))) # Add indices to access negative/positive samples
-        train_indices = random.sample(range(int(total_samples/2)),num_train_seqs)
+        train_indices = list(random.sample(range(int(total_samples/2)),num_train_seqs)) # Access same 
         test_indices = [index for index in all_indices if index not in train_indices]
-        # Prepare training and testing one hot encoded data 
-        X_train = np.array([]) 
-        X_test = np.array([])
-
-        # One hot encode each positive then each negative sequence and append to self.one_hot_matrix
-        for index,sequence in enumerate(self.positive):
-            encoded_sequence = self.one_hot(sequence)
-            # Initialize first stack of numpy array matrix
-            if index == 0:
-                self.one_hot_matrix = encoded_sequence
-            # Keep stacking and append to the bottom of the numpy array matrix
-            else:
-                self.one_hot_matrix = np.vstack((self.one_hot_matrix,encoded_sequence))
-
-        for index,sequence in enumerate(self.negative):
-            encoded_sequence = self.new_one_hot(sequence)
-            # Just vertically stack, no need to initialize matrix since positive matrix already initialized it
-            self.one_hot_matrix = np.vstack(self.one_hot_matrix,encoded_sequence)
         
-        # Labels
-        Y_train = np.array([[True] * (num_train_seqs) + [False] * (num_train_seqs)]) # 1D Array of 80,000=True + 80,000=False
-        Y_test = np.array([[True] * (num_test_seqs) + [False] * (num_test_seqs)]) # 1D Array of 20,000=True + 20,000=False
+        # Prepare training and testing one hot encoded data --> Initialize matrices with 0's
+        X_train = np.zeros((num_train_seqs*2,read_length*NUCLEOTIDES_LENGTH,dtype=np.uint8)) # 160,000 x 400 matrix
+        X_test = np.zeros((num_test_seqs*2,read_length*NUCLEOTIDES_LENGTH,dtype=np.uint8)) # 40,000 x 400 matrix
 
-        # Type cast numpy elements
-        X_train = X_train.astype("float32")
-        X_test = X_test.astype("float32")
-        Y_train = Y_train.astype("bool")
-        Y_test = Y_test.astype("bool")
+        # Perform one hot encoding directly
+        # Positive train
+        for si in train_indices:
+            seq = self.positive[index] # Access tuple at training index
+            seqlen = len(seq)
+            arr = np.chararray((seqlen,),buffer=seq)
+            for ii,char in enumerate(CHARS):
+                X_train[si][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+
+        # Negative train
+        for si in train_indices:
+            sequence = self.negative[index] # Access tuple at training index
+            seqlen = len(seq)
+            arr = np.chararray((seqlen,),buffer=seq)
+            for ii,char in enumerate(CHARS):
+                X_train[si+num_train_seqs][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+
+        # Positive test
+        for si in test_indices:
+            sequence = self.positive[index] # Access tuple at testing index
+            seqlen = len(seq)
+            arr = np.chararray((seqlen,),buffer=seq)
+            for ii,char in enumerate(CHARS):
+                X_test[si][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+
+        # Negative test
+        for si in test_indices:
+            sequence = self.negative[index]
+            seqlen = len(seq)
+            arr = np.chararray((seqlen,),buffer=seq)
+            for ii,char in enumerate(CHARS):
+                X_test[si+num_test_seqs][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+
+        # Labels
+        Y_train = np.array([[1] * (num_train_seqs) + [0] * (num_train_seqs)]) # 1D Array of 80,000=True + 80,000=False
+        Y_test = np.array([[1] * (num_test_seqs) + [0] * (num_test_seqs)]) # 1D Array of 20,000=True + 20,000=False
 
         # 1. Rectified linear activation function model
         model1 = Sequential()
