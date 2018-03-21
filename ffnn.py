@@ -18,9 +18,9 @@ class NeuralNetwork():
         self.non_masked_reads = [] # [(header,sequence)] after removing hard and(or) soft masked reads
         self.seqs_to_remove = [] # headers of the sequences which will be removed at the end from the metagenome
         self.filtered_reads = [] # filtered lists containing (header,sequence), of remaining reads
-        self.one_hot_matrix = None # one hot encoded data for training
-        self.positive = [] # data for positive training classifications
-        self.negative = [] # data for negative training classifications
+        self.one_hot_matrix = np.array([]) # one hot encoded data for training
+        self.positive = [] # data for positive training classifications --> [(header,sequence)]
+        self.negative = [] # data for negative training classifications --> [(header,sequence)]
 
     """Create feed forward neural network models""" 
     # Number of samples: sample total for negative dataset
@@ -41,9 +41,21 @@ class NeuralNetwork():
         X_train = np.array([]) 
         X_test = np.array([])
 
-        # One hot encode each sequence and append to self.one_hot_matrix
-        for sequence in self.positive:
-            self.one_hot_matrix.append(self.one_hot(sequence))
+        # One hot encode each positive then each negative sequence and append to self.one_hot_matrix
+        for index,sequence in enumerate(self.positive):
+            encoded_sequence = self.one_hot(sequence)
+            # Initialize first stack of numpy array matrix
+            if index == 0:
+                self.one_hot_matrix = encoded_sequence
+            # Keep stacking and append to the bottom of the numpy array matrix
+            else:
+                self.one_hot_matrix = np.vstack(self.one_hot_matrix,encoded_sequence)
+
+        for index,sequence in enumerate(self.negative):
+            encoded_sequence = self.one_hot(sequence)
+            # Just vertically stack, no need to initialize matrix since positive matrix already initialized it
+            self.one_hot_matrix = np.vstack(self.one_hot_matrix,encoded_sequence)
+        
         # Labels
         Y_train = np.array([[True] * (num_train_seqs) + [False] * (num_train_seqs)]) # 1D Array of 80,000=True + 80,000=False
         Y_test = np.array([[True] * (num_test_seqs) + [False] * (num_test_seqs)]) # 1D Array of 20,000=True + 20,000=False
@@ -59,17 +71,17 @@ class NeuralNetwork():
         # Configure first layer to have output arrays of shape (*,32) 
         # Configure first layer to take input arrays of shape (*,16),
         # Note: no need to specify dimension of input in additional layers  
-        model1.add(Dense(32,input_dim=784))
+        model1.add(Dense(200,input_dim=400)) # 100 features x 4 nucleotides = 400 features
         # Rectified linear unit activation function
         model1.add(Activation('relu'))
         # Prevent overfitting by dropping some samples while training
         model1.add(Dropout(0.2))
         # Add hidden layer
-        model1.add(Dense(32))
+        model1.add(Dense(200))
         model1.add(Activation('relu'))
         model1.add(Dropout(0.2))
         # Add output layer
-        model1.add(Dense(1,))
+        model1.add(Dense(1))
         model1.add(Activation('softmax'))
         # Compile model to configure learning process
         model1.compile(optimizer='rmsprop',
@@ -80,7 +92,10 @@ class NeuralNetwork():
         
         # Evaluate model
         score = model1.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
- 
+        
+        print("Model score was: " + score[0])
+        print("Model accuracy was: " + score[1])
+
         # Predict new values
         one_hot_labels = model1.predict(X_test,Y_test)
         print(one_hot_labels)
