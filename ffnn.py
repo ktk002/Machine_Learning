@@ -4,7 +4,7 @@ import random
 import logging
 import keras.utils
 from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.layers import Dense, Activation, Dropout
 from argparse import ArgumentParser
 import numpy as np
 
@@ -36,83 +36,89 @@ class NeuralNetwork():
         logging.debug("Building feedforward neural network: %s" % (model_name))
         num_train_seqs = int((int(total_samples/2) * 0.80)) # Default: 80,000 
         num_test_seqs = int(total_samples/2) - num_train_seqs # Default: 20,000
-        all_indices = list(range(int(total_samples/2))) # Add indices to access negative/positive samples
-        train_indices = list(random.sample(range(int(total_samples/2)),num_train_seqs)) # Access same 
+        all_indices = list(range(int(total_samples/2))) # Add indices to access negative/positive samples --> random values between 0 to 100,000
+        train_indices = list(random.sample(range(int(total_samples/2)),num_train_seqs)) # 80,000 random integers between 0 and 100,000 
         test_indices = [index for index in all_indices if index not in train_indices]
         
         # Prepare training and testing one hot encoded data --> Initialize matrices with 0's
-        X_train = np.zeros((num_train_seqs*2,read_length*NUCLEOTIDES_LENGTH,dtype=np.uint8)) # 160,000 x 400 matrix
-        X_test = np.zeros((num_test_seqs*2,read_length*NUCLEOTIDES_LENGTH,dtype=np.uint8)) # 40,000 x 400 matrix
+        X_train = np.zeros((num_train_seqs*2,read_length*NUCLEOTIDES_LENGTH),dtype=np.uint8) # 160,000 x 400 matrix
+        X_test = np.zeros((num_test_seqs*2,read_length*NUCLEOTIDES_LENGTH),dtype=np.uint8) # 40,000 x 400 matrix
 
         # Perform one hot encoding directly
         # Positive train
-        for si in train_indices:
-            seq = self.positive[index] # Access tuple at training index
+        for index,si in enumerate(train_indices):
+            seq = self.positive[si][1] # Access sequence at training index
             seqlen = len(seq)
             arr = np.chararray((seqlen,),buffer=seq)
-            for ii,char in enumerate(CHARS):
-                X_train[si][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+            for ii,char in enumerate(NUCLEOTIDES):
+                X_train[index][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
 
         # Negative train
-        for si in train_indices:
-            sequence = self.negative[index] # Access tuple at training index
+        for index,si in enumerate(train_indices):
+            sequence = self.negative[si][1] # Access tuple at training index
             seqlen = len(seq)
             arr = np.chararray((seqlen,),buffer=seq)
-            for ii,char in enumerate(CHARS):
-                X_train[si+num_train_seqs][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+            for ii,char in enumerate(NUCLEOTIDES):
+                X_train[index+num_train_seqs][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
 
         # Positive test
-        for si in test_indices:
-            sequence = self.positive[index] # Access tuple at testing index
+        for index,si in enumerate(test_indices):
+            sequence = self.positive[si][1] # Access tuple at testing index
             seqlen = len(seq)
             arr = np.chararray((seqlen,),buffer=seq)
-            for ii,char in enumerate(CHARS):
-                X_test[si][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+            for ii,char in enumerate(NUCLEOTIDES):
+                X_test[index][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
 
         # Negative test
-        for si in test_indices:
-            sequence = self.negative[index]
+        for index,si in enumerate(test_indices):
+            sequence = self.negative[si][1]
             seqlen = len(seq)
             arr = np.chararray((seqlen,),buffer=seq)
-            for ii,char in enumerate(CHARS):
-                X_test[si+num_test_seqs][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
+            for ii,char in enumerate(NUCLEOTIDES):
+                X_test[index+num_test_seqs][ii*seqlen:(ii+1)*seqlen][arr == char] = 1
 
         # Labels
         Y_train = np.array([[1] * (num_train_seqs) + [0] * (num_train_seqs)]) # 1D Array of 80,000=True + 80,000=False
         Y_test = np.array([[1] * (num_test_seqs) + [0] * (num_test_seqs)]) # 1D Array of 20,000=True + 20,000=False
+        Y_train = Y_train.T
+        Y_test = Y_test.T
 
         # 1. Rectified linear activation function model
         model1 = Sequential()
         # Configure first layer to have output arrays of shape (*,32) 
         # Configure first layer to take input arrays of shape (*,16),
         # Note: no need to specify dimension of input in additional layers  
-        model1.add(Dense(200,input_dim=400)) # 100 features x 4 nucleotides = 400 features
+        model1.add(Dense(267,input_dim=400)) # 100 features x 4 nucleotides = 400 features
         # Rectified linear unit activation function
+        #model1.add(Activation('relu'))
         model1.add(Activation('relu'))
         # Prevent overfitting by dropping some samples while training
         model1.add(Dropout(0.2))
         # Add hidden layer
-        model1.add(Dense(200))
+        model1.add(Dense(267))
+        model1.add(Activation('relu'))
+        model1.add(Dropout(0.2))
+        model1.add(Dense(267))
         model1.add(Activation('relu'))
         model1.add(Dropout(0.2))
         # Add output layer
         model1.add(Dense(1))
-        model1.add(Activation('softmax'))
+        model1.add(Activation('sigmoid'))
         # Compile model to configure learning process
         model1.compile(optimizer='rmsprop',
                         loss='binary_crossentropy',
                         metrics=['accuracy'])
         # Perform model training
-        model1.fit(X_train, Y_train, batch_size=32, nb_epoch=10, show_accuracy=True, verbose=2, validation_data=(X_test,Y_test))
+        model1.fit(X_train, Y_train, batch_size=32, epochs=10, verbose=2, validation_data=(X_test,Y_test))
         
         # Evaluate model
-        score = model1.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
+        score = model1.evaluate(X_test, Y_test, verbose=0)
         
-        print("Model score was: " + score[0])
-        print("Model accuracy was: " + score[1])
+        print("Model score was: " + str(score[0]))
+        print("Model accuracy was: " + str(score[1]))
 
         # Predict new values
-        one_hot_labels = model1.predict(X_test,Y_test)
+        one_hot_labels = model1.predict(X_test)
         print(one_hot_labels)
         logging.debug("Finished building feedforward neural network: %s" % (model_name))
 
