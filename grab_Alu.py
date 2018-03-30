@@ -9,7 +9,6 @@ with open("Alu_sublibrary","U") as input_file:
 		for index,line in enumerate(tokens):
 			# Found an Alu element to start
 			if line.startswith(";ORIGIN"):
-				print "found an alu"
 				start = True
 				cur_alu = "> " + tokens[index+1] # Add next line as index
 				cur_alu_mark = tokens[index+1]
@@ -20,7 +19,7 @@ with open("Alu_sublibrary","U") as input_file:
 				pass
 			elif line.startswith(";LOCUS"):
 				print "writing to file"
-				output_file.write(cur_alu + cur_seq + "\n")
+				output_file.write(cur_alu + cur_seq[:-1] + "\n")
 				start = False
 				cur_seq = ""
 			elif start == True:
