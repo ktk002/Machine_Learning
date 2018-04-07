@@ -8,7 +8,7 @@ import numpy as np
 # Initialize seed for data reproducibility
 random.seed(1) 
 
-class FilePrep():
+class FilePrep:
     """Constructor"""
     def __init__(self):
         self.reads = [] # [(header,sequence)]
@@ -77,13 +77,13 @@ class FilePrep():
                 cur_header = line
                 cur_seq = ""
             else:
-                cur_seq += line
+                cur_seq += line.upper()
         # Add last sequence of file
         self.reads.append((cur_header,cur_seq))
         logging.debug("Finished loading fasta file: %s" % (fasta_file))
 
     """Pre-processing: Cut all sequences in each fasta file in in_dir into kmers of length 100 (or specified length) and write to a new file"""
-    def write_kmers(self,negative_genomes_in_dir,output_file="merged_1.fasta",kmer_size=100):
+    def write_kmers(self,in_dir,output_file="merged_1.fasta",kmer_size=100):
         # Check for existing file
         if os.path.exists(output_file):
             # Grab current file number and increment
@@ -93,7 +93,7 @@ class FilePrep():
         logging.debug("Writing kmers to output file: %s" % (output_file))
         with open(output_file,"w") as output_file:
             # Process all fasta sequences in specified directory
-            for filename in os.listdir(negative_genomes_in_dir):
+            for filename in os.listdir(in_dir):
                 if filename.endswith(".fasta") or filename.endswith(".fa") or filename.endswith(".fna"):
                     abs_path = os.path.join(in_dir,filename)
                     self.load_fasta(abs_path)
@@ -112,7 +112,7 @@ class FilePrep():
         # Select random number of indices to include
         random.randint(0,len() - kmer_size)
          
-    """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default"""
+    """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default --> mainly for introns"""
     def remove_masked_reads(self,soft=True):
         logging.debug("Removing masked reads...")
         reads_to_remove = set() # indices of reads to remove from reads attribute
@@ -184,7 +184,7 @@ def main():
                         required=False,action="store_true",dest="bool_switch_option",default=False)
     args = parser.parse_args()   
 
-    # Configure log file destination if running in debug mode
+    # Configure log file destination if running in debug mode is true
     if args.bool_switch_option == True:
         logging.basicConfig(filename="Meta_Sweeper.log",
                             filemode='w',
@@ -192,15 +192,16 @@ def main():
                             level=logging.DEBUG)
 
     # Build neural network models
-    NN = NeuralNetwork()
-#    NN.load_fasta(args.input_fasta)
-  #  NN.load_training_data("random_positive_training.tsv","random_negative_training.tsv")  
+    file_prep_object = FilePrep()
+#    file_prep_object.load_fasta(args.input_fasta)
+  #  file_prep_object.load_training_data("random_positive_training.tsv","random_negative_training.tsv")  
     # Randomly sample x number of reads for positive and negative training
-#    NN.random_sample_reads("positive_training.tsv")
- #   NN.random_sample_reads("negative_training.tsv")
+#    file_prep_object.random_sample_reads("positive_training.tsv")
+ #   file_prep_object.random_sample_reads("negative_training.tsv")
 
     # Write source file containing 100bp long reads in merged_1.fasta file 
-#    NN.write_kmers("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta",kmer_size=100)
+#    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta",kmer_size=100)
+    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus",output_file="merged_1.fasta",kmer_size=100)
 
 if __name__ == "__main__":
     main()
