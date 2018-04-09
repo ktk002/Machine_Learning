@@ -106,12 +106,22 @@ class FilePrep:
                             output_file.write("\t".join([header,kmer])+"\n") 
         logging.debug("Finished merging fasta files to: %s" % (output_file))
 
-    """Randomly sample x number of DNA kmers of length k from a fasta file and write to a new file"""
-    def sample_kmers(self,input_file,output_file="",kmer_size=100,num_seqs=200000,x=100000):
-        counter = 0 # Will stop when 
-        # Select random number of indices to include
-        random.randint(0,len() - kmer_size)
-         
+    """Randomly sample x number of DNA kmers of length k from a 100bp tsv file and write to a new file"""
+    def sample_kmers(self,input_file,output_file="sampled_kmers.tsv",kmer_size=100,num_seqs=200000,x=100000):
+        with open(input_file,'U') as input_file_handler:
+            tokens = input_file_handler.readlines()
+        num_seqs = len(tokens)
+
+        # Check that x is less than or equal to num_seqs or else raise an error
+        if num_seqs < x:
+            raise Exception('Number of available sequences is less than number requested!')
+        # Select random number of indices without replacement to include in the subsampled dataset; num_seqs index not included
+        sample_indices = list(random.sample(range(0,num_seqs),x))
+
+        with open(output_file,'w') as output_file_handler:
+            for index in sample_indices:
+                output_file_handler.write(tokens[index])
+
     """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default --> mainly for introns"""
     def remove_masked_reads(self,soft=True):
         logging.debug("Removing masked reads...")
@@ -201,7 +211,8 @@ def main():
 
     # Write source file containing 100bp long reads in merged_1.fasta file 
 #    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta",kmer_size=100)
-    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus",output_file="merged_1.fasta",kmer_size=100)
+#    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus",output_file="merged_1.fasta",kmer_size=100)
+    file_prep_object.sample_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\negative_source.tsv",output_file="630_negative.tsv",x=630)
 
 if __name__ == "__main__":
     main()
