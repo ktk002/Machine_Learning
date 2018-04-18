@@ -5,6 +5,7 @@ import logging
 import keras.utils
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
+from keras.utils.vis_utils import plot_model
 from argparse import ArgumentParser
 import numpy as np
 
@@ -90,7 +91,6 @@ class NeuralNetwork():
         # Note: no need to specify dimension of input in additional layers  
         model1.add(Dense(267,input_dim=400)) # 100 features x 4 nucleotides = 400 features
         # Rectified linear unit activation function
-        #model1.add(Activation('relu'))
         model1.add(Activation('relu'))
         # Prevent overfitting by dropping some samples while training
         model1.add(Dropout(0.2))
@@ -104,6 +104,9 @@ class NeuralNetwork():
         # Add output layer
         model1.add(Dense(1))
         model1.add(Activation('sigmoid'))
+
+        # Plot the model in an image
+#        plot_model(model1, to_file='model1_plot.png', show_shapes=True, show_layer_names=True)
         # Compile model to configure learning process
         model1.compile(optimizer='rmsprop',
                         loss='binary_crossentropy',
@@ -149,7 +152,7 @@ class NeuralNetwork():
         # Returns a one hot encoded the numpy numeric list with 4 class labels for A,C,G,T
         return keras.utils.np_utils.to_categorical(numeric_list,num_classes=4)
 
-    def new_one_hote(self,tuple_to_convert):
+    def new_one_hot(self,tuple_to_convert):
         CHARS = 'ACGT'
         CHARS_COUNT = len(CHARS)
         sequence_to_convert = tuple_to_convert[1]
@@ -298,14 +301,15 @@ def main():
     # Build neural network models
     NN = NeuralNetwork()
 #    NN.load_fasta(args.input_fasta)
-    NN.load_training_data("random_positive_training.tsv","random_negative_training.tsv")  
+    #NN.load_training_data("random_positive_training.tsv","random_negative_training.tsv")  
+    NN.load_training_data("alu1.tsv","630_negative.tsv")  
     # Randomly sample x number of reads for positive and negative training
 #    NN.random_sample_reads("positive_training.tsv")
  #   NN.random_sample_reads("negative_training.tsv")
- 
+    #NN.write_kmers("/home/ubuntu/kellie/Machine_Learning/negative_genomes",output_file="merged_1.fasta",kmer_size=100)
     # Feedforward neural networks - activation models
     # Rectified linear unit 
-    relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
+   # relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Hyperbolic tangent (tanh) 
 #    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
@@ -321,7 +325,8 @@ def main():
     # Hyperbolic tangent (tanh) 
 #    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
-#    sigmoid = NN.build_FFNN("sigmoid",input_nodes=100,num_hidden_layers=1,output_nodes=2)
+    sigmoid = NN.build_FFNN("sigmoid",total_samples=1260,read_length=100)
+   # sigmoid = NN.build_FFNN("sigmoid",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Linear 
 #    linear = NN.build_FFNN("linear",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Scaled exponential linear unit 
