@@ -5,6 +5,8 @@ import logging
 from argparse import ArgumentParser
 import numpy as np
 
+"""Usage example: python file_preparation.py -i input.fasta -o output.fasta"""
+
 # Initialize seed for data reproducibility
 random.seed(1) 
 
@@ -42,7 +44,7 @@ class FilePrep:
         numeric_string = upper_sequence_to_convert.translate(str.maketrans("ACGT","0123"))
         numeric_list = list(map(int,[digit for digit in numeric_string])) # List of 0,1,2,3 
 
-        # Returns a one hot encoded the numpy numeric list with 4 class labels for A,C,G,T
+        # Returns a one hot encoded numpy numeric list with 4 class labels for A,C,G,T
         return keras.utils.np_utils.to_categorical(numeric_list,num_classes=4)
 
     def new_one_hot(self,tuple_to_convert):
@@ -100,7 +102,7 @@ class FilePrep:
                     for cur_tuple in self.reads:
                         header = cur_tuple[0]
                         seq = cur_tuple[1]
-                        # Loop over sequences to extract kmers with step size of kmer length
+                        # Loop over sequences to extract kmers with step size of kmer length with no overlapping cuts
                         for index in range(0,len(seq)-kmer_size,kmer_size):
                             kmer = seq[index:index+kmer_size]
                             output_file.write("\t".join([header,kmer])+"\n") 
@@ -212,7 +214,9 @@ def main():
     # Write source file containing 100bp long reads in merged_1.fasta file 
 #    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta",kmer_size=100)
 #    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus",output_file="merged_1.fasta",kmer_size=100)
-    file_prep_object.sample_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\negative_source.tsv",output_file="630_negative.tsv",x=630)
+    #file_prep_object.sample_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\negative_source.tsv",output_file="630_negative.tsv",x=630)
+    # Cut exons.fasta into 100 bp sequences and save to merged_1.fasta
+    file_prep_object.write_kmers("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\files_to_process",output_file="merged_1.fasta",kmer_size=100)
 
 if __name__ == "__main__":
     main()
