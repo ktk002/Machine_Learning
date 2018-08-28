@@ -11,8 +11,13 @@ import numpy as np
 random.seed(1) 
 
 class FilePrep:
-    """Constructor"""
+    """
+    The purpose of this class is to take training data from fasta files and reformat the data 
+    into tsv files to be used as resource files for ffnn.py and rnn.py which build feedforward
+    and recurrent neural networks.
+    """
     def __init__(self):
+        """Constructor"""
         self.reads = [] # [(header,sequence)]
         self.non_masked_reads = [] # [(header,sequence)] after removing hard and(or) soft masked reads
         self.seqs_to_remove = [] # headers of the sequences which will be removed at the end from the metagenome
@@ -20,8 +25,8 @@ class FilePrep:
         self.positive = [] # data for positive training classifications --> [(header,sequence)]
         self.negative = [] # data for negative training classifications --> [(header,sequence)]
 
-    """Load positive and negative datasets into numpy arrays attributes"""
     def load_training_data(self,positive_dataset,negative_dataset):
+        """Load positive and negative datasets into numpy arrays attributes"""
         with open(positive_dataset,"U") as input_positive, open(negative_dataset,"U") as input_negative:
             for line in input_positive:
                 tokens = line.split()
@@ -34,8 +39,8 @@ class FilePrep:
                 sequence = tokens[1]
                 self.negative.append((header,sequence))
 
-    """Convert ATCG from positive/negatives datasets to 0123 to one hot encoding"""
     def one_hot(self,tuple_to_convert):
+        """Convert ATCG from positive/negatives datasets to 0123 to one hot encoding"""
         sequence_to_convert = tuple_to_convert[1] # index 0 = header, index 1 = sequence
         # Make sure that all nucleotides are upper case (may not be if user wished to keep soft masked reads)
         upper_sequence_to_convert = sequence_to_convert.upper()
@@ -59,8 +64,8 @@ class FilePrep:
         for index,char in enumerate(CHARS):
             res[index*seqlen:(ii+1)*seqlen][arr == char] = 1
 
-    """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
+        """Pre-processing: Load fasta file into reads property"""
         logging.debug("Loading fasta file: %s" % (fasta_file))
         # Reset reads being held in case using function to process many fasta files
         self.reads = []
@@ -84,8 +89,8 @@ class FilePrep:
         self.reads.append((cur_header,cur_seq))
         logging.debug("Finished loading fasta file: %s" % (fasta_file))
 
-    """Pre-processing: Cut all sequences in each fasta file in in_dir into kmers of length 100 (or specified length) and write to a new file"""
     def write_kmers(self,in_dir,output_file="merged_1.fasta",kmer_size=100):
+        """Pre-processing: Cut all sequences in each fasta file in in_dir into kmers of length 100 (or specified length) and write to a new file"""
         # Check for existing file
         if os.path.exists(output_file):
             # Grab current file number and increment
@@ -108,8 +113,8 @@ class FilePrep:
                             output_file.write("\t".join([header,kmer])+"\n") 
         logging.debug("Finished merging fasta files to: %s" % (output_file))
 
-    """Randomly sample x number of DNA kmers of length k from a 100bp tsv file and write to a new file"""
     def sample_kmers(self,input_file,output_file="sampled_kmers.tsv",kmer_size=100,num_seqs=200000,x=100000):
+        """Randomly sample x number of DNA kmers of length k from a 100bp tsv file and write to a new file"""
         with open(input_file,'U') as input_file_handler:
             tokens = input_file_handler.readlines()
         num_seqs = len(tokens)
@@ -124,8 +129,8 @@ class FilePrep:
             for index in sample_indices:
                 output_file_handler.write(tokens[index])
 
-    """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default --> mainly for introns"""
     def remove_masked_reads(self,soft=True):
+        """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default --> mainly for introns"""
         logging.debug("Removing masked reads...")
         reads_to_remove = set() # indices of reads to remove from reads attribute
 
@@ -151,8 +156,8 @@ class FilePrep:
         self.non_masked_reads = [cur_tuple for index,cur_tuple in enumerate(self.reads) if index not in reads_to_remove]
         logging.debug("Finished removing masked reads.")
 
-    """Randomly samples x number of sequences from the training data file and outputs those sequences to a new file"""
     def random_sample_reads(self,infile,x=100000):
+        """Randomly samples x number of sequences from the training data file and outputs those sequences to a new file"""
         # Write to a new file with added prefix "random"
         outfile = "random_" + infile
         # Make sure x is smaller than the number of sequences in the file
@@ -166,8 +171,8 @@ class FilePrep:
             for index in random_indices:
                 output_file.write(tokens[index])
 
-    """Post-processing: Use classification labels to remove sequences classified as human by deep learning."""
     def filter_reads(self,classification_labels):    
+        """Post-processing: Use classification labels to remove sequences classified as human by deep learning."""
         logging.debug("Removing reads classified as human DNA...")
         for cur_tuple,classification in zip(self.read_list,classification_labels):
             # Sequence labeled as non-human, keep in filtered list
@@ -175,8 +180,8 @@ class FilePrep:
                 self.filtered_reads.append(cur_tuple)
         logging.debug("Finished removing reads classified as human DNA.")
 
-    """Post-processing: Writes new fasta file based on filtered_list"""
     def write_fasta(self,output_file):
+        """Post-processing: Writes new fasta file based on filtered_list"""
         filtered_list = self.filtered_reads
         logging.debug("Writing final filtered fasta file to: %s..." % (output_file))
         with open(output_file,'w') as output_file:

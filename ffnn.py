@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+"Usage example: python ffnn.py -i <fasta_file_to_filter.fasta> -o <filtered_fasta_file.fasta>"
+
 import os
 import random
 import logging
@@ -13,8 +16,10 @@ import numpy as np
 random.seed(1) 
 
 class NeuralNetwork():
-    """Constructor"""
+    """The purpose of this class is to build feedfoward neural networks for binary and multiclass classification."""
+
     def __init__(self):
+        """Constructor"""
         self.reads = [] # [(header,sequence)]
         self.non_masked_reads = [] # [(header,sequence)] after removing hard and(or) soft masked reads
         self.seqs_to_remove = [] # headers of the sequences which will be removed at the end from the metagenome
@@ -23,9 +28,9 @@ class NeuralNetwork():
         self.positive = [] # data for positive training classifications --> [(header,sequence)]
         self.negative = [] # data for negative training classifications --> [(header,sequence)]
 
-    """Create feed forward neural network models""" 
     # Number of samples: sample total for negative dataset
-    def build_FFNN(self,model_name,total_samples=200000,read_length=100,**kwargs):
+    def build_FFNN(self,model_name,total_samples=200000,read_length=100,classfication_type="binary",**kwargs):
+        """Create feed forward neural network models""" 
         NUCLEOTIDES = "ACGT"
         NUCLEOTIDES_LENGTH = len(NUCLEOTIDES)
         # Make sure total number of samples is even
@@ -89,7 +94,7 @@ class NeuralNetwork():
         # Configure first layer to have output arrays of shape (*,32) 
         # Configure first layer to take input arrays of shape (*,16),
         # Note: no need to specify dimension of input in additional layers  
-        model1.add(Dense(267,input_dim=400)) # 100 features x 4 nucleotides = 400 features
+        model1.add(Dense(267,input_dim=400)) # 100 features x 4 nucleotides = 400 features, 267 hidden nodes the inputs will go into
         # Rectified linear unit activation function
         model1.add(Activation('relu'))
         # Prevent overfitting by dropping some samples while training
@@ -105,28 +110,32 @@ class NeuralNetwork():
         model1.add(Dense(1))
         model1.add(Activation('sigmoid'))
 
+
+        # Set classification type to binary or multi-class
+        loss_function = "binary_crossentropy" if classification_type == "binary" else "categorical_crossentropy"
+        print("loss function is: ", loss_function)
         # Plot the model in an image
 #        plot_model(model1, to_file='model1_plot.png', show_shapes=True, show_layer_names=True)
         # Compile model to configure learning process
         model1.compile(optimizer='rmsprop',
-                        loss='binary_crossentropy',
+                        loss=loss_function,
                         metrics=['accuracy'])
         # Perform model training
         model1.fit(X_train, Y_train, batch_size=32, epochs=10, verbose=2, validation_data=(X_test,Y_test))
         
-        # Evaluate model
+        # Evaluate model to obtain score and accuracy
         score = model1.evaluate(X_test, Y_test, verbose=0)
         
         print("Model score was: " + str(score[0]))
         print("Model accuracy was: " + str(score[1]))
 
-        # Predict new values
+        # Predict new values on test data
         one_hot_labels = model1.predict(X_test)
         print(one_hot_labels)
         logging.debug("Finished building feedforward neural network: %s" % (model_name))
 
-    """Load positive and negative datasets into numpy arrays attributes"""
     def load_training_data(self,positive_dataset,negative_dataset):
+        """Load positive and negative datasets into numpy arrays attributes"""
         with open(positive_dataset,"U") as input_positive, open(negative_dataset,"U") as input_negative:
             for line in input_positive:
                 tokens = line.split()
@@ -139,8 +148,8 @@ class NeuralNetwork():
                 sequence = tokens[1]
                 self.negative.append((header,sequence))
 
-    """Convert ATCG from positive/negatives datasets to 0123 to one hot encoding"""
     def one_hot(self,tuple_to_convert):
+        """Convert ATCG from positive/negatives datasets to 0123 to one hot encoding"""
         sequence_to_convert = tuple_to_convert[1] # index 0 = header, index 1 = sequence
         # Make sure that all nucleotides are upper case (may not be if user wished to keep soft masked reads)
         upper_sequence_to_convert = sequence_to_convert.upper()
@@ -164,8 +173,8 @@ class NeuralNetwork():
         for index,char in enumerate(CHARS):
             res[index*seqlen:(ii+1)*seqlen][arr == char] = 1
 
-    """Pre-processing: Load fasta file into reads property"""
     def load_fasta(self,fasta_file): 
+        """Pre-processing: Load fasta file into reads property"""
         logging.debug("Loading fasta file: %s" % (fasta_file))
         # Reset reads being held in case using function to process many fasta files
         self.reads = []
@@ -189,8 +198,8 @@ class NeuralNetwork():
         self.reads.append((cur_header,cur_seq))
         logging.debug("Finished loading fasta file: %s" % (fasta_file))
 
-    """Pre-processing: Cut all sequences in each fasta file in in_dir into kmers of length 100 (or specified length) and write to a new file"""
     def write_kmers(self,in_dir,output_file="merged_1.fasta",kmer_size=100):
+        """Pre-processing: Cut all sequences in each fasta file in in_dir into kmers of length 100 (or specified length) and write to a new file"""
         # Check for existing file
         if os.path.exists(output_file):
             # Grab current file number and increment
@@ -213,14 +222,24 @@ class NeuralNetwork():
                             output_file.write("\t".join([header,kmer])+"\n") 
         logging.debug("Finished merging fasta files to: %s" % (output_file))
 
-    """Randomly sample x number of DNA kmers of length k from a fasta file and write to a new file"""
     def sample_kmers(self,input_file,output_file="",kmer_size=100,num_seqs=200000):
+        """Randomly sample x number of DNA kmers of length k from a fasta file and write to a new file"""
         counter = 0 # Will stop when 
         # Select random number of indices to include
         random.randint(0,len() - kmer_size)
-         
-    """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default"""
+        
+    def cut_reads(self,k,output_file="cut_reads.tsv"):
+        """Cuts all sequences loaded in self.reads into size k and write to a new file"""
+        with open(output_file,"w") as out_file:
+            for cur_tuple in self.reads:
+                header = cur_tuple[0]
+                sequence = cur_tuple[1]
+                for x in range(0,len(sequence)-k,k):
+                    kmer = sequence[x:x+k]
+                    out_file.write("\t".join([header,kmer]) + "\n")
+
     def remove_masked_reads(self,soft=True):
+        """Pre-processing: Remove any reads containing hard or soft masked regions from reads attribute by default"""
         logging.debug("Removing masked reads...")
         reads_to_remove = set() # indices of reads to remove from reads attribute
 
@@ -246,8 +265,8 @@ class NeuralNetwork():
         self.non_masked_reads = [cur_tuple for index,cur_tuple in enumerate(self.reads) if index not in reads_to_remove]
         logging.debug("Finished removing masked reads.")
 
-    """Randomly samples x number of sequences from the training data file and outputs those sequences to a new file"""
     def random_sample_reads(self,infile,x=100000):
+        """Randomly samples x number of sequences from the training data file and outputs those sequences to a new file"""
         # Write to a new file with added prefix "random"
         outfile = "random_" + infile
         # Make sure x is smaller than the number of sequences in the file
@@ -261,8 +280,8 @@ class NeuralNetwork():
             for index in random_indices:
                 output_file.write(tokens[index])
 
-    """Post-processing: Use classification labels to remove sequences classified as human by deep learning."""
     def filter_reads(self,classification_labels):    
+        """Post-processing: Use classification labels to remove sequences classified as human by deep learning."""
         logging.debug("Removing reads classified as human DNA...")
         for cur_tuple,classification in zip(self.read_list,classification_labels):
             # Sequence labeled as non-human, keep in filtered list
@@ -270,8 +289,8 @@ class NeuralNetwork():
                 self.filtered_reads.append(cur_tuple)
         logging.debug("Finished removing reads classified as human DNA.")
 
-    """Post-processing: Writes new fasta file based on filtered_list"""
     def write_fasta(self,output_file):
+        """Post-processing: Writes new fasta file based on filtered_list"""
         filtered_list = self.filtered_reads
         logging.debug("Writing final filtered fasta file to: %s..." % (output_file))
         with open(output_file,'w') as output_file:
@@ -303,6 +322,9 @@ def main():
 #    NN.load_fasta(args.input_fasta)
     #NN.load_training_data("random_positive_training.tsv","random_negative_training.tsv")  
     NN.load_training_data("alu1.tsv","630_negative.tsv")  
+    NN.load_fasta(args.input_fasta)
+    NN.cut_reads(100)
+   # NN.load_training_data("random_positive_training.tsv","random_negative_training.tsv")  
     # Randomly sample x number of reads for positive and negative training
 #    NN.random_sample_reads("positive_training.tsv")
  #   NN.random_sample_reads("negative_training.tsv")
@@ -310,6 +332,7 @@ def main():
     # Feedforward neural networks - activation models
     # Rectified linear unit 
    # relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
+    #relu = NN.build_FFNN("relu",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Hyperbolic tangent (tanh) 
 #    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
@@ -325,7 +348,7 @@ def main():
     # Hyperbolic tangent (tanh) 
 #    tanh = NN.build_FFNN("tanh",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Sigmoid (logistic)
-    sigmoid = NN.build_FFNN("sigmoid",total_samples=1260,read_length=100)
+    sigmoid = NN.build_FFNN("sigmoid",total_samples=1260,read_length=100,classification_type="multiclass")
    # sigmoid = NN.build_FFNN("sigmoid",input_nodes=100,num_hidden_layers=1,output_nodes=2)
     # Linear 
 #    linear = NN.build_FFNN("linear",input_nodes=100,num_hidden_layers=1,output_nodes=2)
