@@ -4,6 +4,7 @@ __author__ = 'Kellie Kim'
 
 import tensorflow as tf
 import numpy as np
+import random
 
 
 class NeuralNetwork(object):
@@ -25,6 +26,10 @@ class NeuralNetwork(object):
         """Convert DNA string to list of numbers ranging from 0-3."""
         return list(dna.translate(str.maketrans("ATCG", "0123")))
 
+    def get_shortest_list_length(self, list_of_lists):
+        """Returns the list of the shortest length from a set of lists."""
+        return min(map(len, list_of_lists))
+
     def normalize_dna(self):
         """Takes x_train_list attribute and normalizes values in between 0 and 1."""
         self.x_train_list = tf.keras.utils.normalize(np.array(self.x_train_list), axis=1)
@@ -34,34 +39,43 @@ class NeuralNetwork(object):
         self.x_train_list = np.array(self.x_train_list)
         self.y_train = np.array(self.y_train)
 
-    def load_training_data(self, input_file, type="positive", classification="binary"):
+    def load_training_data(self, input_file, training_type="positive", classification="binary"):
         """Loads data from input_file and adds as positive or negative data assuming binary classification."""
+        cur_list = []
+
         # Increment to next largest classification label if classification is multi
         if classification == "multi":
             NeuralNetwork.POSITIVE_CLASSIFICATION_LABEL_COUNTER = NeuralNetwork.POSITIVE_CLASSIFICATION_LABEL_COUNTER + 1
-
         # Read in training data file
         with open(input_file, 'r') as input_file_reader:
             for line in input_file_reader:
                 tokens = line.strip().split("\t")  # Split on tab, sequence is in second column
                 sequence = tokens[1]  # Training sequence to be added to list
                 # Add sequence to training data, regardless of label
-                self.x_train_list.append(NeuralNetwork.dna_to_number(sequence))  # Add list containing numbers from 0-3
+                cur_list.append(NeuralNetwork.dna_to_number(sequence)) # Add list containing numbers from 0-3
+        self.x_train_list.append(cur_list)
 
-                # Negative data will be loaded the same for binary and multiclass classification
-                if type == "negative":
-                    self.y_train.append(NeuralNetwork.NEGATIVE_CLASSIFICATION_LABEL)  # Add label negative training data
-                # Classification is multiclass, label of 0 is non-human dna, non zero is human dna
-                elif type == "positive":
-                    if classification == "binary":
-                        self.y_train.append(1) # Add 1 to y_train
-                    elif classification == "multi":
-                        # Add training data to negative list
-                        self.y_train.append(NeuralNetwork.POSITIVE_CLASSIFICATION_LABEL_COUNTER)
-                    else:
-                        print("Classification type invalid.")
-                else:
-                    print("Training data type invalid.")
+    def equalize_training_data(self):
+        """Sets negative and positive training data lengths to be equal or every classification to be of equal length to minimize training bias."""
+        # Set length of all classifications to be equal to shortest list
+        # Get length of smallest list
+        shortest_length = self.get_shortest_list_length(self.x_train_list)
+        x_train_copy = []
+
+        # Make all classification lists equal to the shortest length by randomly choosing n elements from list.
+        for training_list in self.x_train_list:
+            # Cut list to shortest list length
+            random_sample = random.sample(training_list, shortest_length)
+            x_train_copy.append(random_sample)
+        self.x_train_list = x_train_copy
+
+    def set_training_labels(self):
+        """Assigns labels to y_train list attribute based on lengths of lists in x_train."""
+        # Smallest number of samples in x_train_list attribute
+        min_num_samples = self.get_shortest_list_length(self.x_train_list)
+        for index, training_list in enumerate(self.x_train_list):
+            y_train = y_train + [index] * min_num_samples
+        self.y_train = np.array(y_train)
 
     def add_input_layer(self, num_features=100, num_neurons=267):
         """Add first layer of neural network and explicitly specify input shape of data."""
@@ -82,9 +96,14 @@ class NeuralNetwork(object):
             num_nodes = NeuralNetwork.POSITIVE_CLASSIFICATION_LABEL_COUNTER
             self.model.add(tf.keras.layers.Dense(num_nodes, activation=activation_function))
 
-    def compile_model(self, optimizer='adam', loss='binary_crossentropy'):
+    def compile_model(self, optimizer='adam', loss='binary_entropy', classification="binary"):
         """Adds optimizer and loss function of neural network."""
-        self.model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
+        if classification == "binary":
+            self.model.compile(optimizer=optimizer, loss=loss, metrics=['accuracy'])
+        elif classification == "multi":
+            self.model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+        else:  # custom compilation
+            print("Invalid classification type during model compilation.")
 
     def fit_model(self, epochs=3):
         """Trains neural network model using {epochs} number of epochs."""
@@ -107,14 +126,14 @@ class NeuralNetwork(object):
             new_predictions.append(np.argmax(self.predictions[sample_number]))
         self.predictions = new_predictions
 
-    def build_nn(self, num_hidden_layers=1, num_hidden_neurons=267, activation="relu", classification="binary"):
+    def build_nn(self, num_hidden_layers=1, num_hidden_neurons=267, activation=tf.nn.relu, classification="binary"):
         # Convert numerical values between 0 and 1 instead of 0-3
         self.normalize_dna()
         # After loading training data and normalizing, convert training data and labels to numpy arrays
         self.convert_to_numpy()
         self.add_input_layer()
-        self.add_layers()
-        self.add_output_layer()
+        self.add_layers(num_layers=num_hidden_layers, num_neurons=num_hidden_neurons, activation_function=activation)
+        self.add_output_layer(classification=classification)
         self.compile_model()
         self.fit_model()
 
@@ -130,7 +149,7 @@ def main():
         model1 = NeuralNetwork()
         # First load positive and negative training data into neural network
         model1.load_training_data(input_file="all_alu.tsv", type="positive")
-        model1.load_training_data(input_file="", type="negative")
+        model1.load_training_data(input_file="negative_source.tsv", type="negative")
 
         # Vary number of hidden layers cases:
         # 1) 1 hidden layer, 267 hidden neurons
