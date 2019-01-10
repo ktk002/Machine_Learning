@@ -2,11 +2,11 @@
 import os
 
 class ProcessFasta(object):
-    """Perform sliding window of size x and """
+    """Perform sliding window of size x and generate tsv with sequence id and sequence of length x."""
     def __init__(self):
         self.fasta_sequences = {}
 
-    def write_training_data(self, window_size, keep_N=False, sliding_window=True, output_file="sliding_window_training.tsv"):
+    def write_training_data(self, window_size=100, keep_N=False, sliding_window=True, output_file="sliding_window_training.tsv"):
         """Writes fasta sequences to tsv using sliding window and does not keep masked sequences by default."""
         with open(output_file, 'w') as output_handler:
             if keep_N == True:
@@ -47,44 +47,57 @@ class ProcessFasta(object):
             # Add final sequence to dictionary
             self.fasta_sequences[cur_key] = cur_sequence
 
-    def combine_fastas(self, in_dir, output_file="merged_1.fasta"):
+    def combine_fastas(self, in_dir):
         """Pre-processing: Merge all fasta files into fasta sequences dict"""
-        # Check for existing file
-        if os.path.exists(output_file):
+        for filename in os.listdir(in_dir):
+            if filename.endswith(".fasta") or filename.endswith(".fa") or filename.endswith(".fna"):
+                print("name of fasta is: ", filename)
+                abs_path = os.path.join(in_dir, filename)
+                # Load fasta sequence into self.fasta_sequences attribute
+                self.load_multifasta(abs_path, clear_fasta_dict=False)
+
+    def write_fasta_dict(self, output_file="merged_1.fasta"):
+        file_count = 1
+
+        # Check for existing file, increment counter until file doesn't exist
+        while os.path.exists(output_file):
             # Grab current file number and increment
-            new_file_num = int(output_file.split(".")[0].split("_")[1]) + 1
-            output_file = "".join(["merged_", str(new_file_num), ".fasta"])
+            tokens = output_file.split('.')
+            base_name = tokens[0]
+            extension = tokens[1]
+            output_file = base_name + '_' + str(file_count) + '.' + extension
 
-        with open(output_file, "w") as output_file:
+        print("Writing to new fasta file: ", output_file)
+        with open(output_file, "w") as output_fasta:
             # Process all fasta sequences in specified directory
-            for filename in os.listdir(in_dir):
-                if filename.endswith(".fasta") or filename.endswith(".fa") or filename.endswith(".fna"):
-                    abs_path = os.path.join(in_dir, filename)
-                    self.load_multifasta(abs_path, clear_fasta_dict=False)
-
-    def write_fasta_dict(self, output_fasta="merged_1.fasta"):
-        with open(output_fasta, 'w') as output_file:
             for sequence_identifier, sequence in self.fasta_sequences.items():
-                output_file.write(sequence_identifier + "\n")
-                output_file.write(sequence + "\n")
+                output_fasta.write(sequence_identifier + "\n")
+                output_fasta.write(sequence + "\n")
 
 
 def main():
     fasta_processor = ProcessFasta()
 
     # Create negative training data
-    fasta_processor.combine_fastas("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta")
-    fasta_processor.write_fasta_dict(output_fasta="all_negative.fasta")
-    fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="all_negative.tsv")
+    # Merge all negative genomes into 1 fasta file
+#    fasta_processor.combine_fastas("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta")
+ #   fasta_processor.write_fasta_dict(output_fasta="all_negative.fasta")
+ #   fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="all_negative.tsv")
 
     # Load first set of Alu sequences from BLAST Alu database
-    fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\alu.n")
-    fasta_processor.write_training_data(window_size=100, output_file="alu_sliding_1.tsv")
+ #   fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\alu.n")
+ #   fasta_processor.write_training_data(window_size=100, output_file="alu_sliding_1.tsv")
 
     # Create second set of alu sequences tsv from NIH Alu database
-    fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\Alu_seqs.fasta")
-    fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="alu_cut_2.tsv")
+ #   fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\Alu_seqs.fasta")
+ #   fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="alu_cut_2.tsv")
 
+    # Create positive training set for intron sequences
+
+    # Create negative testing dataset
+    # fasta_processor.combine_fastas("C:\\Users\\Kellie\\Desktop\\Negative_genomes\\Level_5_genomes")
+    # fasta_processor.write_fasta_dict(output_file="testing_genomes_set.fasta")
+    # fasta_processor.write_training_data(window_size=100, output_file="5_negative_test_genomes.tsv")
 
 
 if __name__ == '__main__':
