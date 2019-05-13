@@ -7,6 +7,7 @@ import numpy as np
 import random
 
 from sklearn.metrics import confusion_matrix
+from tensorflow.python.keras.optimizers import SGD
 
 class NeuralNetwork(object):
   #  training_data_types = ['intron', 'alu']
@@ -50,6 +51,7 @@ class NeuralNetwork(object):
         """
         Loads data from input_file and adds as positive or negative data assuming binary classification.
         Assumes that negative data will always be loaded first and associated with label 0.
+        Positive human data is labeled with values other than 0 such as 1.
         Assumes data_type will always only be either training or testing.
         """
         cur_list = []
@@ -138,7 +140,8 @@ class NeuralNetwork(object):
         """Adds final layer of neural network using number of classification labels."""
         if classification == "binary":
             num_nodes = 1  # Only 1 output required to make binary decision
-            self.model.add(tf.keras.layers.Dense(num_nodes, activation=activation_function))
+            print("using sigmoid")
+            self.model.add(tf.keras.layers.Dense(num_nodes, activation='sigmoid'))
         else:
             #  Multiclassification, add nodes equal to number of classifications
             num_nodes = NeuralNetwork.POSITIVE_CLASSIFICATION_LABEL_COUNTER
@@ -172,8 +175,13 @@ class NeuralNetwork(object):
     def convert_classification_labels(self):
         """Takes argmax of each prediction to obtain final list of classification labels."""
         new_predictions = []
-        for sample_number in range(len(self.predictions)):
-            new_predictions.append(np.argmax(self.predictions[sample_number]))
+        new_predictions = [round(x[0]) for x in self.predictions]
+#        for sample_number in range(len(self.predictions)):
+#            new_predictions.append(np.argmax(self.predictions[sample_number]))
+        print("predictions list is: ")
+        print(new_predictions)
+        print("old predictions list: ")
+        print(self.predictions)
         self.predictions = np.array(new_predictions) # Convert list of python labels to a numpy array
 
     def get_confusion_matrix(self, expected_labels, predicted_labels):
@@ -216,7 +224,9 @@ class NeuralNetwork(object):
         self.add_input_layer()
         self.add_layers(num_layers=num_hidden_layers, num_neurons=num_hidden_neurons, activation_function=activation)
         self.add_output_layer(classification=classification)
-        self.compile_model()
+
+        # Set optimizer and learning rate
+        self.compile_model(optimizer=SGD(lr=0.001))
         self.fit_model()
 
 
@@ -267,8 +277,19 @@ def main():
         # 9) 75 hidden layers, 267 hidden neurons
         # 10) 100 hidden layers, 267 hidden neurons
  #       num_hidden_layers_list = [1, 2, 3, 4, 5, 10, 25, 50, 75, 100]
- #       num_hidden_layers_list = [1, 100]
-  #      for hidden_layer_num in num_hidden_layers_list:
+        num_hidden_layers_list = [1, 10, 20] # 1, 10, 100
+        for hidden_layer_num in num_hidden_layers_list:
+            print("number of hidden layers: ", hidden_layer_num)
+            model1.build_nn(num_hidden_layers=1, num_hidden_neurons=267, activation="relu")
+            model1.print_validation_loss_accuracy()
+            model1.predict_unknown_datasets()
+            model1.convert_classification_labels()
+            TP, TN, FP, FN = model1.get_confusion_matrix(model1.y_test, model1.predictions)
+            sensitivity, precision, positive_predictive_value, negative_predictive_value = model1.calculate_metrics(TP, TN, FP, FN)
+            print("sensitivity is: ", sensitivity)
+            print("precision is: ", precision)
+            print("positive_predictive value is: ", positive_predictive_value)
+            print("negative predictive value is: ", negative_predictive_value)
  #           print("number of hidden layers is: ", hidden_layer_num)
   #          model1.build_nn(num_hidden_layers=hidden_layer_num, num_hidden_neurons=267)
 
@@ -289,19 +310,19 @@ def main():
         # 3) 1 hidden layer, 267 hidden neurons, hyperbolic tangent activation function (tanh)
         # 4) 1 hidden layer, 267 hidden neurons, sigmoid activation function (sigmoid)
         # 5) 1 hidden layer, 267 hidden neurons, linear activation function (linear)
-        activation_type_list = ["relu", "selu", "tanh", "sigmoid", "linear"]
-        for activation_type in activation_type_list:
-            print("activation type is: ", activation_type)
-            model1.build_nn(num_hidden_layers=1, num_hidden_neurons=267, activation=activation_type)
-            model1.print_validation_loss_accuracy()
-            model1.predict_unknown_datasets()
-            model1.convert_classification_labels()
-            TP, TN, FP, FN = model1.get_confusion_matrix(model1.y_test, model1.predictions)
-            sensitivity, precision, positive_predictive_value, negative_predictive_value = model1.calculate_metrics(TP, TN, FP, FN)
-            print("sensitivity is: ", sensitivity)
-            print("precision is: ", precision)
-            print("positive_predictive value is: ", positive_predictive_value)
-            print("negative predictive value is: ", negative_predictive_value)
+        # activation_type_list = ["relu", "selu", "tanh", "sigmoid", "linear"]
+        # for activation_type in activation_type_list:
+        #     print("activation type is: ", activation_type)
+        #     model1.build_nn(num_hidden_layers=1, num_hidden_neurons=267, activation=activation_type)
+        #     model1.print_validation_loss_accuracy()
+        #     model1.predict_unknown_datasets()
+        #     model1.convert_classification_labels()
+        #     TP, TN, FP, FN = model1.get_confusion_matrix(model1.y_test, model1.predictions)
+        #     sensitivity, precision, positive_predictive_value, negative_predictive_value = model1.calculate_metrics(TP, TN, FP, FN)
+        #     print("sensitivity is: ", sensitivity)
+        #     print("precision is: ", precision)
+        #     print("positive_predictive value is: ", positive_predictive_value)
+        #     print("negative predictive value is: ", negative_predictive_value)
 
     ##################################
     ### Multiclass classification ####
