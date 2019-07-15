@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 import os
+import random
+
+# Set seed to random arbitrary value for reproducibility
+random.seed(100)
 
 class ProcessFasta(object):
     """Perform sliding window of size x and generate tsv with sequence id and sequence of length x."""
@@ -74,30 +78,52 @@ class ProcessFasta(object):
                 output_fasta.write(sequence_identifier + "\n")
                 output_fasta.write(sequence + "\n")
 
+    def get_random_indices(self, total_num_sequences, num_to_sample):
+        """Returns a list of num_to_sample randomly selected indices from total_num_sequences"""
+        random_sampled_list = list(random.sample(range(0, total_num_sequences), num_to_sample))
+        return random_sampled_list
+
+    def get_sampled_indices(self, list_to_sample, random_indices):
+        """Returns list of sampled items from input list."""
+        sampled_elements = [list_to_sample[x] for x in random_indices]
+        return sampled_elements
+
 
 def main():
     fasta_processor = ProcessFasta()
-
-    # Create negative training data
+    #1) # Create negative training data
     # Merge all negative genomes into 1 fasta file
 #    fasta_processor.combine_fastas("C:\\Users\\Kellie\\Desktop\\EC2\kellie\\Machine_Learning\\negative_genomes",output_file="merged_1.fasta")
- #   fasta_processor.write_fasta_dict(output_fasta="all_negative.fasta")
+#    fasta_processor.write_fasta_dict(output_fasta="all_negative.fasta")
  #   fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="all_negative.tsv")
 
-    # Load first set of Alu sequences from BLAST Alu database
+    #2) Load first set of Alu sequences from BLAST Alu database
  #   fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\alu.n")
  #   fasta_processor.write_training_data(window_size=100, output_file="alu_sliding_1.tsv")
 
-    # Create second set of alu sequences tsv from NIH Alu database
+    #3) Create second set of alu sequences tsv from NIH Alu database
  #   fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\Alu_seqs.fasta")
  #   fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="alu_cut_2.tsv")
 
-    # Create positive training set for intron sequences
+    #4) Create positive training set for intron sequences
 
-    # Create negative testing dataset
+    #5) Create negative testing dataset
     # fasta_processor.combine_fastas("C:\\Users\\Kellie\\Desktop\\Negative_genomes\\Level_5_genomes")
     # fasta_processor.write_fasta_dict(output_file="testing_genomes_set.fasta")
     # fasta_processor.write_training_data(window_size=100, output_file="5_negative_test_genomes.tsv")
+
+    #6) Select n number of random samples from negative training set (all_negative.tsv) and write to new tsv
+    # Open tsv to sample from
+    # with open("all_negative.tsv", "r") as file_reader:
+    #     all_negative_list = file_reader.readlines()
+    # total_num_seq = len(all_negative_list)
+    # num_sequences_to_sample = 100
+    # random_indices = fasta_processor.get_random_indices(total_num_seq, num_sequences_to_sample) # Returns list of strings containing randomly chosen sequences
+    # random_sequences = fasta_processor.get_sampled_indices(all_negative_list, random_indices)
+    # # Write sampled results to a new tsv
+    # with open("subsampled_negative_sequences.tsv", "w") as file_writer:
+    #     for cur_line in random_sequences:
+    #         file_writer.write(cur_line)
 
 
 if __name__ == '__main__':
