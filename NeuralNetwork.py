@@ -28,6 +28,14 @@ class NeuralNetwork(object):
         """Convert DNA string to list of numbers ranging from 0-3. Assumes only 4 letters in sequence"""
         return list(map(int, dna.translate(str.maketrans("ATCG", "0123"))))
 
+    def reset_attributes(self):
+        self.x_train_list = []
+        self.y_train = []
+        self.x_test = []
+        self.y_test = []
+        self.model = tf.keras.Sequential()
+        self.predictions = []
+
     def get_shortest_list_length(self, list_of_lists):
         """Returns the list of the shortest length from a set of lists."""
         return min(map(len, list_of_lists))
@@ -38,12 +46,12 @@ class NeuralNetwork(object):
             #print("normalizing: ", self.x_train_list)
             self.x_train_list = tf.keras.utils.normalize(np.array(self.x_train_list), axis=1)
         else:
-            print("normalizing: ", self.x_test)
+            #print("normalizing: ", self.x_test)
             self.x_test = tf.keras.utils.normalize(np.array(self.x_test), axis=1)
 
     def convert_to_numpy(self):
         """Converts training data and labels to numpy arrays."""
-        print(self.x_train_list)
+        #print(self.x_train_list)
         self.x_train_list = np.array(self.x_train_list)
         self.y_train = np.array(self.y_train)
 
@@ -174,7 +182,6 @@ class NeuralNetwork(object):
 
     def convert_classification_labels(self):
         """Takes argmax of each prediction to obtain final list of classification labels."""
-        new_predictions = []
         new_predictions = [round(x[0]) for x in self.predictions]
 #        for sample_number in range(len(self.predictions)):
 #            new_predictions.append(np.argmax(self.predictions[sample_number]))
@@ -240,11 +247,23 @@ def main():
         # Initialize new neural network
         model1 = NeuralNetwork()
         # First load positive and negative training data into neural network
+        # Positive training data:
+        # Case 1) introns (1,019,625 total positive training sequences)
+#        model1.load_data(input_file="introns_hg38.tsv", training_type="positive", data_type="training")
+        # Case 2) Alu elements (3963576) positive training data
+#        model1.load_data(input_file="alu_sliding_1.tsv", training_type="positive", data_type="training")
   #      model1.load_data(input_file="alu_sliding_1.tsv", training_type="positive")
   #      model1.load_data(input_file="merged_alus.tsv", training_type="positive")
-        model1.load_data(input_file="introns_hg38.tsv", training_type="positive", data_type="training")
    #     model1.load_data(input_file="fake_negative.tsv", training_type="negative")
-        model1.load_data(input_file="all_negative.tsv", training_type="negative", data_type="training")
+
+        # Case 3) Exons
+        # model1.load_data(input_file="exons_100.tsv", training_type="positive", data_type="training")
+        model1.load_data(input_file="subsampled_exons_100.tsv", training_type="positive", data_type="training")
+
+        # Negative sequences (656,077 total negative sequences) --> use against all positive training data
+#        model1.load_data(input_file="all_negative.tsv", training_type="negative", data_type="training")
+        # Use subsampled tsv containing only 100 negative sequences
+        model1.load_data(input_file="subsampled_negative_sequences.tsv", training_type="negative", data_type="training")
 
         # Load testing data sets
         model1.load_data(input_file="500_positive_training.tsv", training_type="positive", data_type="testing")
@@ -277,7 +296,8 @@ def main():
         # 9) 75 hidden layers, 267 hidden neurons
         # 10) 100 hidden layers, 267 hidden neurons
  #       num_hidden_layers_list = [1, 2, 3, 4, 5, 10, 25, 50, 75, 100]
-        num_hidden_layers_list = [1, 10, 20] # 1, 10, 100
+  #      num_hidden_layers_list = [1, 10, 20] # 1, 10, 100
+        num_hidden_layers_list = [1]
         for hidden_layer_num in num_hidden_layers_list:
             print("number of hidden layers: ", hidden_layer_num)
             model1.build_nn(num_hidden_layers=1, num_hidden_neurons=267, activation="relu")
