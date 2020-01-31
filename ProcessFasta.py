@@ -5,6 +5,9 @@ import random
 # Set seed to random arbitrary value for reproducibility
 random.seed(100)
 
+MITOCHONDRIA_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Mitochondrial_DNA"
+MITOCHONDRIA_FILE_NAME = "NC_012920.1.fasta"
+
 class ProcessFasta(object):
     """Perform sliding window of size x and generate tsv with sequence id and sequence of length x."""
     def __init__(self):
@@ -126,22 +129,30 @@ def main():
     # with open("subsampled_negative_sequences.tsv", "w") as file_writer:
     #     for cur_line in random_sequences:
     #         file_writer.write(cur_line)
-
+    #
     # Convert exon fasta to tsv with all exon sequences
     # fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\exons.fasta")
     # fasta_processor.write_training_data(window_size=100, output_file="all_exon_sequences.tsv")
 
+    # 7) Create positive (human DNA) exon training dataset of 100 samples
     # Select n number of random samples from exon positive training data and write to new tsv
-    with open("all_exon_sequences.tsv", "r") as file_reader:
-        all_exon_list = file_reader.readlines()
-    total_num_seq = len(all_exon_list)
-    num_sequences_to_sample = 100
-    random_indices = fasta_processor.get_random_indices(total_num_seq, num_sequences_to_sample) # Returns list of strings containing randomly chosen sequences
-    random_sequences = fasta_processor.get_sampled_indices(all_exon_list, random_indices)
-    # Write new results to tsv
-    with open("subsampled_exons_100.tsv", "w") as file_writer:
-        for cur_line in random_sequences:
-            file_writer.write(cur_line)
+    # with open("all_exon_sequences.tsv", "r") as file_reader:
+    #     all_exon_list = file_reader.readlines()
+    # total_num_seq = len(all_exon_list)
+    # num_sequences_to_sample = 100
+    # random_indices = fasta_processor.get_random_indices(total_num_seq, num_sequences_to_sample) # Returns list of strings containing randomly chosen sequences
+    # random_sequences = fasta_processor.get_sampled_indices(all_exon_list, random_indices)
+    # # Write new results to tsv
+    # with open("subsampled_exons_100.tsv", "w") as file_writer:
+    #     for cur_line in random_sequences:
+    #         file_writer.write(cur_line)
+
+    # 8) Create mitochondria positive training dataset
+    # MITOCHONDRIA_FASTA_PATH = os.path.join(MITOCHONDRIA_DATA_PATH, MITOCHONDRIA_FILE_NAME)
+    # # Convert fasta to tsv
+    # fasta_processor.load_multifasta(MITOCHONDRIA_FASTA_PATH)
+    # OUTPUT_MITOCHONDRIA_PATH = os.path.join(MITOCHONDRIA_DATA_PATH, "all_mitochondrial_sequences.tsv")
+    # fasta_processor.write_training_data(window_size=100, output_file=OUTPUT_MITOCHONDRIA_PATH)
 
 if __name__ == '__main__':
     main()
