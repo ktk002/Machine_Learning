@@ -7,6 +7,7 @@ random.seed(100)
 
 MITOCHONDRIA_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Mitochondrial_DNA"
 MITOCHONDRIA_FILE_NAME = "NC_012920.1.fasta"
+INTRON_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Intron_DNA"
 
 class ProcessFasta(object):
     """Perform sliding window of size x and generate tsv with sequence id and sequence of length x."""
@@ -108,7 +109,30 @@ def main():
     # fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus\\Alu_seqs.fasta")
     # fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="alu_cut_2.tsv")
 
-    #4) Create positive training set for intron sequences
+    #4) Create positive training set for intron sequences by randomly picking 500 sequences and writing to: "500_positive_test_introns.tsv"
+    # Write remaining sequences to: "training_intron_sequences.tsv"
+    # ALL_INTRON_PATH = os.path.join(INTRON_DATA_PATH, "all_intron_sequences.tsv")
+    # TEST_INTRONS = os.path.join(INTRON_DATA_PATH, "500_positive_test_introns.tsv")
+    # TRAINING_INTRONS = os.path.join(INTRON_DATA_PATH, "training_intron_sequences.tsv")
+    # with open(ALL_INTRON_PATH, "r") as file_reader:
+    #     all_intron_list = file_reader.readlines()
+    # total_num_seq = len(all_intron_list)
+    # num_sequences_to_sample = 500
+    # all_indices = [index for index in range(total_num_seq)]
+    # random_indices = fasta_processor.get_random_indices(total_num_seq, num_sequences_to_sample)
+    # random_sequences = fasta_processor.get_sampled_indices(all_intron_list, random_indices)
+    # # Write new results to tsv: "500_positive_test_introns.tsv"
+    # with open(TEST_INTRONS, "w") as file_writer:
+    #     for cur_line in random_sequences:
+    #         file_writer.write(cur_line)
+    #
+    # # Write remaining results not found in 500_positive_test_introns.tsv to "training_intron_sequences"
+    # # Take difference in remaining indices
+    # training_indices = list(set(all_indices) - set(random_indices))
+    # training_sequences = fasta_processor.get_sampled_indices(all_intron_list, training_indices)
+    # with open(TRAINING_INTRONS, "w") as file_writer:
+    #     for cur_line in training_sequences:
+    #         file_writer.write(cur_line)
 
     #5) Create negative testing dataset
     # fasta_processor.combine_fastas("C:\\Users\\Kellie\\Desktop\\Negative_genomes\\Level_5_genomes")
@@ -178,6 +202,11 @@ def main():
     # with open(TRAINING_MITOCHONDRIA, "w") as file_writer:
     #     for cur_line in training_sequences:
     #         file_writer.write(cur_line)
+
+    # 10) Convert SINE fasta file into 100 bp sequences in tsv format
+    # Convert fasta to tsv
+    fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA\\SINEs.bnk")
+    fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA\\all_SINES.tsv")
 
 if __name__ == '__main__':
     main()
