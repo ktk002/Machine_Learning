@@ -8,6 +8,7 @@ random.seed(100)
 MITOCHONDRIA_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Mitochondrial_DNA"
 MITOCHONDRIA_FILE_NAME = "NC_012920.1.fasta"
 INTRON_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Intron_DNA"
+SINE_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA"
 
 class ProcessFasta(object):
     """Perform sliding window of size x and generate tsv with sequence id and sequence of length x."""
@@ -205,8 +206,33 @@ def main():
 
     # 10) Convert SINE fasta file into 100 bp sequences in tsv format
     # Convert fasta to tsv
-    fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA\\SINEs.bnk")
-    fasta_processor.write_training_data(window_size=100, sliding_window=False, output_file="C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA\\all_SINES.tsv")
+    # fasta_processor.load_multifasta("C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA\\SINEs.bnk")
+    # fasta_processor.write_training_data(window_size=100, sliding_window=True, output_file="C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA\\all_sines_sliding_window.tsv")
+
+    # 11) Randomly select 500 SINE sequences to be used as testing data
+    # Write the remaining sequences to a file called "training_sine_sequences.tsv"
+    # ALL_SINE_PATH = os.path.join(SINE_DATA_PATH, "all_sines_sliding_window.tsv")
+    # TEST_SINE = os.path.join(SINE_DATA_PATH, "500_positive_test_sines.tsv")
+    # TRAINING_SINE = os.path.join(SINE_DATA_PATH, "training_sine_sequences.tsv")
+    # with open(ALL_SINE_PATH, "r") as file_reader:
+    #     all_sine_list = file_reader.readlines()
+    # total_num_seq = len(all_sine_list)
+    # num_sequences_to_sample = 500
+    # all_indices = [index for index in range(total_num_seq)]
+    # random_indices = fasta_processor.get_random_indices(total_num_seq, num_sequences_to_sample)
+    # random_sequences = fasta_processor.get_sampled_indices(all_sine_list, random_indices)
+    # # Write new results to tsv: "500_positive_test_sine.tsv"
+    # with open(TEST_SINE, "w") as file_writer:
+    #     for cur_line in random_sequences:
+    #         file_writer.write(cur_line)
+    #
+    # # Write remaining results not found in 500_positive_test_sine.tsv to "training_sine_sequences"
+    # # Take difference in remaining indices
+    # training_indices = list(set(all_indices) - set(random_indices))
+    # training_sequences = fasta_processor.get_sampled_indices(all_sine_list, training_indices)
+    # with open(TRAINING_SINE, "w") as file_writer:
+    #     for cur_line in training_sequences:
+    #         file_writer.write(cur_line)
 
 if __name__ == '__main__':
     main()
