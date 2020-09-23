@@ -9,6 +9,9 @@ MITOCHONDRIA_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Mitochondrial_DNA"
 MITOCHONDRIA_FILE_NAME = "NC_012920.1.fasta"
 INTRON_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Intron_DNA"
 SINE_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\SINE_DNA"
+ALU_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Alus"
+EXON_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Exon_DNA"
+MITOCHONDRIAL_DATA_PATH = "C:\\Users\\Kellie\\Desktop\\Machine_Learning\\Mitochondrial_DNA"
 
 class ProcessFasta(object):
     """Perform sliding window of size x and generate tsv with sequence id and sequence of length x."""
@@ -233,6 +236,59 @@ def main():
     # with open(TRAINING_SINE, "w") as file_writer:
     #     for cur_line in training_sequences:
     #         file_writer.write(cur_line)
+    #
+    # 12) Concatenate all positive training data into a single file called "multiclass_training_data.tsv" with added column
+    # containing single word to represent data type (ex row: ">alu_sequence1 ACT alu")
+    # intron_path = os.path.join(INTRON_DATA_PATH, "all_intron_sequences.tsv")
+    # exon_path = os.path.join(EXON_DATA_PATH, "all_exon_sequences.tsv")
+    # alu_path = os.path.join(ALU_DATA_PATH, "all_alu.tsv")
+    # sine_path = os.path.join(SINE_DATA_PATH, "all_sines.tsv")
+    # mitochondria_path = os.path.join(MITOCHONDRIAL_DATA_PATH, "all_mitochondrial_sequences.tsv")
+    # multiclass_training_path = "multiclass_merged_training_data.tsv"
+    # data_type_list = ['intron', 'exon', 'alu', 'sine', 'mitochondria']
+    # with open(multiclass_training_path, 'w') as outfile:
+    #     for training_type in data_type_list:
+    #         with open(intron_path, 'r') as intron_infile, \
+    #                 open(exon_path, 'r') as exon_infile, \
+    #                 open(alu_path, 'r') as alu_infile, \
+    #                 open(sine_path, 'r') as sine_infile, \
+    #                 open(mitochondria_path, 'r') as mitochondria_infile:
+    #             intron_lines = intron_infile.readlines()
+    #             exon_lines = exon_infile.readlines()
+    #             alu_lines = alu_infile.readlines()
+    #             sine_lines = sine_infile.readlines()
+    #             mitochondrial_lines = mitochondria_infile.readlines()
+    #
+    #             for line in intron_lines:
+    #                 tokens = line.strip().split()
+    #                 tokens.append('intron')
+    #                 new_line = "\t".join(tokens) + "\n"
+    #                 outfile.write(new_line)
+    #
+    #             for line in exon_lines:
+    #                 tokens = line.strip().split()
+    #                 tokens.append('exon')
+    #                 new_line = "\t".join(tokens) + "\n"
+    #                 outfile.write(new_line)
+    #
+    #             for line in alu_lines:
+    #                 tokens = line.strip().split()
+    #                 tokens.append('alu')
+    #                 new_line = "\t".join(tokens) + "\n"
+    #                 outfile.write(new_line)
+    #
+    #             for line in sine_lines:
+    #                 tokens = line.strip().split()
+    #                 tokens.append('sine')
+    #                 new_line = "\t".join(tokens) + "\n"
+    #                 outfile.write(new_line)
+    #
+    #             for line in mitochondrial_lines:
+    #                 tokens = line.strip().split()
+    #                 tokens.append('mitochondria')
+    #                 new_line = "\t".join(tokens) + "\n"
+    #                 outfile.write(new_line)
+
 
 if __name__ == '__main__':
     main()
